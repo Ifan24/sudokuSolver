@@ -342,6 +342,7 @@ GameObject:
   - component: {fileID: 7980927552728017043}
   - component: {fileID: 1569338040207092871}
   - component: {fileID: 1896594431288565971}
+  - component: {fileID: 8890677757555863143}
   m_Layer: 0
   m_Name: Agent
   m_TagString: Untagged
@@ -356,7 +357,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8021664918348793431}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 5, y: 5, z: 5}
   m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
   m_Children:
@@ -394,15 +395,15 @@ MonoBehaviour:
     NumStackedVectorObservations: 1
     m_ActionSpec:
       m_NumContinuousActions: 2
-      BranchSizes: 
-    VectorActionSize: 02000000
+      BranchSizes: 0a000000
+    VectorActionSize: 
     VectorActionDescriptions: []
     VectorActionSpaceType: 1
     hasUpgradedBrainParametersWithActionSpec: 1
-  m_Model: {fileID: 11400000, guid: 20a7b83be6b0c493d9271c65c897eb9b, type: 3}
+  m_Model: {fileID: 0}
   m_InferenceDevice: 2
   m_BehaviorType: 0
-  m_BehaviorName: 3DBall
+  m_BehaviorName: sudokuSolver
   TeamId: 0
   m_UseChildSensors: 1
   m_UseChildActuators: 1
@@ -425,6 +426,7 @@ MonoBehaviour:
   hasUpgradedFromAgentParameters: 1
   MaxStep: 0
   initPos: {x: 5, y: 5, z: 5}
+  forceMultiplier: 10
 --- !u!54 &1896594431288565971
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -441,6 +443,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!114 &8890677757555863143
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8021664918348793431}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3a5c9d521e5ef4759a8246a07d52221e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  DecisionPeriod: 10
+  TakeActionsBetweenDecisions: 1
 --- !u!1 &8021703619434969977
 GameObject:
   m_ObjectHideFlags: 0

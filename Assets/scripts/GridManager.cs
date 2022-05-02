@@ -22,9 +22,11 @@ public class GridManager : MonoBehaviour
     
     [Range(17, 81)]
     [SerializeField] private int knownNumbers;
+    private int numberLeft;
     private void Start() {
         blocks = new Dictionary<Vector2, Block>();
         seperators = new List<GameObject>();
+        numberLeft = width*height-knownNumbers;
         GenerateGrid();
         GeneratePuzzle();
     }
@@ -56,31 +58,36 @@ public class GridManager : MonoBehaviour
             }
         }
     }
-    
+    public bool isPuzzleComplete() {
+        return numberLeft == 0;
+    }
     public Block GetBlockAtPosition(Vector2 pos) {
         if (blocks.TryGetValue(pos, out var block)) {
             return block;
         }
         return null;
     }
-    // return false if the click have no effect or after the click the puzzle is incomplete
-    public void ClickNumberAtPosition(Vector2 pos, int number) {
+    // return false if after the click the puzzle is incomplete
+    public bool ClickNumberAtPosition(Vector2 pos, int number) {
         if (blocks.TryGetValue(pos, out var block)) {
             if (!block.ClickNumber(number)) {
                 // the number already clicked
-                return;
+                return true;
             }
+            var isComplete = true;
             // after effect
             // all col 
             for(int i = 0; i < height; i++) {
                 if (blocks.TryGetValue(new Vector2(i, pos.y), out var tmp)) {
-                    tmp.setNumberInactive(number);
+                    tmp.SetNumberInactive(number);
+                    isComplete &= tmp.IsNumberLeft();
                 }
             }
             // all row 
             for(int i = 0; i < width; i++) {
                 if (blocks.TryGetValue(new Vector2(pos.x, i), out var tmp)) {
-                    tmp.setNumberInactive(number);
+                    tmp.SetNumberInactive(number);
+                    isComplete &= tmp.IsNumberLeft();
                 }
             }
             // box
@@ -89,11 +96,15 @@ public class GridManager : MonoBehaviour
             for(int i = 0; i < 3; i++) {
                 for(int j = 0; j < 3; j++) {
                     if (blocks.TryGetValue(new Vector2(x+i, y+j), out var tmp)) {
-                        tmp.setNumberInactive(number);
+                        tmp.SetNumberInactive(number);
+                        isComplete &= tmp.IsNumberLeft();
                     } 
                 }
             }
+            numberLeft--;
+            return isComplete;
         }
+        return false;
     }
     
     
@@ -121,6 +132,14 @@ public class GridManager : MonoBehaviour
         
         GenerateGrid();
         GeneratePuzzle();
+    }
+    
+    public List<int> GetCurrentState() {
+        var state = new List<int>();
+        foreach (var block in blocks) {
+            state.Add(block.Value.GetClickedNumber());
+        }
+        return state;
     }
     // public void GeneratePuzzle() {
     //     int generateNumber = 0;

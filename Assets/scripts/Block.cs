@@ -12,10 +12,14 @@ public class Block : MonoBehaviour
     [SerializeField] private GameObject background;
     private Dictionary<int, innerBlock> innerblocks;
     private int numberLeft;
+    private int clickedNumber;
+    private Vector2 _blockIdx;
     public void init(bool isOffset, Vector2 blockIdx) {
         gameObject.GetComponent<Renderer>().material.color = isOffset ? offsetColor : defaultColor;
         GenerateGrid(isOffset, blockIdx);
+        _blockIdx = blockIdx;
         numberLeft = height*width;
+        clickedNumber = 0;
     }
     
     private void GenerateGrid(bool isOffset, Vector2 blockIdx) {
@@ -44,28 +48,30 @@ public class Block : MonoBehaviour
         }
     
         for(int i = 1; i <= 9; i++) {
-            setNumberInactive(i);
+            SetNumberInactive(i);
         }
         _number.text = number.ToString();
         _number.gameObject.SetActive(true);
         background.SetActive(true);
+        clickedNumber = number;
         return true;
     }
     
-    public void setNumberInactive(int number) {
+    public void SetNumberInactive(int number) {
         if (innerblocks.TryGetValue(number, out var innerBlock)) {
             if (innerBlock.gameObject.activeSelf) {
                 numberLeft--;
+                if (numberLeft == 0) clickedNumber = 10;
             }
             innerBlock.gameObject.SetActive(false);
         }
     }
-    public bool isNumberLeft() {
+    public bool IsNumberLeft() {
         return numberLeft != 0;
     }
     
     // return an active random number
-    public int randomNumber() {
+    public int RandomNumber() {
         var listNum = new List<int>();
         foreach(var block in innerblocks) {
             if (block.Value.gameObject.activeSelf) {
@@ -75,10 +81,18 @@ public class Block : MonoBehaviour
         return listNum[Random.Range(0, listNum.Count)];
     }
     
-    public bool isNumberActive(int number) {
+    public bool IsNumberActive(int number) {
         if (innerblocks.TryGetValue(number, out var innerBlock)) {
             return innerBlock.gameObject.activeSelf;
         }
         return false;
+    }
+    
+    public int GetClickedNumber() {
+        return clickedNumber;
+    }
+    
+    public Vector2 GetBlockPos() {
+        return _blockIdx;
     }
 }
