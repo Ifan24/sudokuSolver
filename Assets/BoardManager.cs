@@ -7,12 +7,12 @@ using System.Linq;
 public class BoardManager : MonoBehaviour
 {
     Dictionary<Vector2, InnerGrid> innerGrids;
-    public int numberLeft;
-    public Dictionary<Vector2, int> answers;
+    [HideInInspector] public int numberLeft;
+    [HideInInspector] public Dictionary<Vector2, int> answers;
     [SerializeField] private float solveSpeed;
     private bool isSolved;
     private GameManager gameManager;
-    public int knownNumbers;
+    [HideInInspector] public int knownNumbers;
     public void init() {
         gameManager = GameManager.Instance;
         knownNumbers = Random.Range(17, 81);
@@ -103,7 +103,10 @@ public class BoardManager : MonoBehaviour
     }
     
     void updateNumberLeft() {
-        gameManager.numberLeftText.text = numberLeft.ToString();
+        // only one can update the UI
+        if (gameObject.name == "Board") {
+            gameManager.numberLeftText.text = numberLeft.ToString();
+        }
     }
     public void GeneratePuzzle() {
         Sudoku sudoku = new Sudoku(9, numberLeft-knownNumbers);

@@ -10,7 +10,6 @@ public class SudokuAgent : Agent
 {
     [SerializeField] float moveSpeed = 5f;
     [SerializeField] float moveStep = 1f;
-    // [SerializeField] float stopDistance = 1.5f;
     [SerializeField] Transform movePoint;
     [SerializeField] private LayerMask obstacleMask;
     [SerializeField] Vector3 initPos;
@@ -27,6 +26,8 @@ public class SudokuAgent : Agent
     Dictionary<Vector2, int> answersCopy;
     Vector2 answerIdx;
     int answerValue;
+    
+    [SerializeField] private GameObject smokeEffect;
     void Update() {
         float movementAmout = moveSpeed * Time.deltaTime;
         transform.localPosition = Vector3.MoveTowards(transform.localPosition, movePoint.localPosition, movementAmout);
@@ -99,16 +100,20 @@ public class SudokuAgent : Agent
         // add current sudoku state
         foreach (var state in boardManager.GetCurrentState()) {
             // sensor.AddObservation(state);
-            var isClicked = state[0] == 1 ? true : false;
-            var isNumberLeft = state[1] == 1 ? true : false;
-            sensor.AddObservation(isClicked);
-            sensor.AddObservation(isNumberLeft);
-            for(int i = 2; i < 11; i++) {
-                sensor.AddObservation(state[i]);
-            }
+            // var isClicked = state[0] == 1 ? true : false;
+            // var isNumberLeft = state[1] == 1 ? true : false;
+            // sensor.AddObservation(isClicked);
+            // sensor.AddObservation(isNumberLeft);
+            // for(int i = 2; i < 11; i++) {
+            //     sensor.AddObservation(state[i]);
+            // }
             // one-hot encoding
-            for(int i = 0; i < 10; i++) {
-                sensor.AddObservation(state[11] == i ? 1 : 0);
+            // for(int i = 0; i < 10; i++) {
+            //     sensor.AddObservation(state[11] == i ? 1 : 0);
+            // }
+            
+            foreach (var obs in state) {
+                sensor.AddObservation(obs);
             }
         }
     }
@@ -160,6 +165,9 @@ public class SudokuAgent : Agent
             AddReward(stepPenalty);
         }
         else {
+            if (smokeEffect.activeSelf) {
+                smokeEffect.SetActive(false);
+            }
             var clickAction = action-3;
             // Debug.Log($"click number {clickAction} at idx {idx.x} {idx.y}");
             var res = boardManager.ClickNumberAtPosition(idx, clickAction);
@@ -226,33 +234,42 @@ public class SudokuAgent : Agent
             if (Mathf.Abs(hor) == 1f) {
                 Vector3 newPosition = movePoint.localPosition + new Vector3(hor*moveStep, 0, 0);
                 if (idx.y+hor >= 0 && idx.y+hor <= 8) {
-                // if (!Physics2D.OverlapCircle(newPosition, stopDistance, obstacleMask)) {
                     movePoint.localPosition = newPosition;
                     idx.y += hor;
                     // Debug.Log($"Move to {idx.x} {idx.y}");
                 }
                 else {
-                    // hit border
+                    // try to go over border
                     res = false;
+                    Debug.Log($"try to go over border");
+                    if (!smokeEffect.activeSelf) {
+                        smokeEffect.SetActive(true);
+                    }
                 }
             }
             else if (Mathf.Abs(ver) == 1f) {
                 Vector3 newPosition = movePoint.localPosition + new Vector3(0, ver*moveStep, 0);
                 if (idx.x-ver >= 0 && idx.x-ver <= 8) {
-                // if (!Physics2D.OverlapCircle(newPosition, stopDistance, obstacleMask)) {
                     movePoint.localPosition = newPosition;
                     idx.x -= ver;
                     // Debug.Log($"Move to {idx.x} {idx.y}");
                 }
                 else {
-                    // hit border
+                    // try to go over border
                     res = false;
+                    Debug.Log($"try to go over border");
+                    if (!smokeEffect.activeSelf) {
+                        smokeEffect.SetActive(true);
+                    }
                 }
             }
             animator.SetBool("isWalk", false);
         }
         else {
             animator.SetBool("isWalk", true);
+            if (smokeEffect.activeSelf) {
+                smokeEffect.SetActive(false);
+            }
         }
         
         // flip agent
@@ -278,8 +295,8 @@ public class SudokuAgent : Agent
         // move to the answer position and click it
         if (isRecord) {
             if (answerIdx.x == -1) {
-                // pick a answer randomly
                 // TODO: maybe pick a position with least choice?
+                // pick a answer randomly
                 var ans = answersCopy.ElementAt(Random.Range(0, answersCopy.Count));
                 answerIdx = ans.Key;
                 answerValue = ans.Value;
