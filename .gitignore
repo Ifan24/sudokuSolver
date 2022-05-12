@@ -61,6 +61,7 @@ crashlytics-build.properties
 
 /Demos
 /WebGL Builds
+/server Builds
 connectwebgl.zip
 webgl_sharing
 *.demo

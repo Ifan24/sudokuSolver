@@ -13,9 +13,10 @@ public class BoardManager : MonoBehaviour
     private bool isSolved;
     private GameManager gameManager;
     [HideInInspector] public int knownNumbers;
+    public int minKnownNumbers = 17;
     public void init() {
         gameManager = GameManager.Instance;
-        knownNumbers = Random.Range(17, 81);
+        knownNumbers = Random.Range(minKnownNumbers, 81);
         numberLeft = 9*9;
         updateNumberLeft();
         
@@ -94,13 +95,71 @@ public class BoardManager : MonoBehaviour
             }
             numberLeft--;
             updateNumberLeft();
-            // if (!isComplete) {
-            //     Debug.Log("isComplete");
-            // }
             return isComplete ? 1 : 2;
         }
         return 0;
     }
+    
+    // same as above function, but it won't perform an action that leads to incomplete solution
+    public int ClickNumberAtPositionSafe(Vector2 pos, int number) {
+        if (innerGrids.TryGetValue(pos, out var innerGrid)) {
+            if (innerGrid.isClicked || !innerGrid.isNumberClickable(number)) {
+                // no effect
+                return 0;
+            }
+            // check if the action leads to incomplete solution
+            var isComplete = true;
+            
+            // backprop
+            // all col 
+            for(int i = 0; i < 9; i++) {
+                var checkPos = new Vector2(i, pos.y);
+                if (checkPos == pos) continue;
+                if (innerGrids.TryGetValue(checkPos, out var tmp)) {
+                    if (!tmp.isClicked) {
+                        // Debug.Log($"check position {i} {pos.y}, {number} is {(tmp.isNumberOnlyLeft(number) ? "" : "not")} the only one left");
+                        isComplete &= !tmp.isNumberOnlyLeft(number);
+                    }
+                }
+            }
+            // all row 
+            for(int i = 0; i < 9; i++) {
+                var checkPos = new Vector2(pos.x, i);
+                if (checkPos == pos) continue;
+                if (innerGrids.TryGetValue(checkPos, out var tmp)) {
+                    if (!tmp.isClicked) {
+                        // Debug.Log($"check position {pos.x} {i}, {number} is {(tmp.isNumberOnlyLeft(number) ? "" : "not")} the only one left");
+                        isComplete &= !tmp.isNumberOnlyLeft(number);
+                    }
+                }
+            }
+            // box
+            var x = pos.x - pos.x % 3;
+            var y = pos.y - pos.y % 3;
+            for(int i = 0; i < 3; i++) {
+                for(int j = 0; j < 3; j++) {
+                    var checkPos = new Vector2(x+i, y+j);
+                    if (checkPos == pos) continue;
+                    if (innerGrids.TryGetValue(checkPos, out var tmp)) {
+                        if (!tmp.isClicked) {
+                            // Debug.Log($"check position {x+i} {y+j}, {number} is {(tmp.isNumberOnlyLeft(number) ? "" : "not")} the only one left");
+                            isComplete &= !tmp.isNumberOnlyLeft(number);
+                        }
+                    } 
+                }
+            }
+            if (!isComplete) {
+                // it is not safe to click the number
+                // Debug.Log("not safe");
+                return 2;
+            }
+            // perform the action
+            return ClickNumberAtPosition(pos, number);
+            
+        }
+        return 0;
+    }
+    
     
     void updateNumberLeft() {
         // only one can update the UI
@@ -159,6 +218,8 @@ public class BoardManager : MonoBehaviour
                         state.Add(tmp.isNumberClickable(k) ? 1 : 0);
                     }
                     state.Add(tmp.getNumber());
+                    state.Add(i);
+                    state.Add(j);
                     states.Add(state);
                 } 
             }
@@ -173,11 +234,17 @@ public class BoardManager : MonoBehaviour
                 if (innerGrids.TryGetValue(new Vector2(i, j), out var tmp)) {
                     // empty
                     if (!tmp.isClicked && !tmp.IsNumberLeft()) continue;
-                    // 
                     if (!tmp.isClicked) return false;
                 } 
             }
         }
         return true;
+    }
+    
+    public int choiceLeft(Vector2 pos) {
+        if (innerGrids.TryGetValue(pos, out var tmp)) {
+            return tmp.choiceLeft();
+        }
+        return 0;
     }
 }

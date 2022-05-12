@@ -62,7 +62,16 @@ public class InnerGrid : MonoBehaviour
         }
     }
     
+    // is this number the last number choice left 
+    public bool isNumberOnlyLeft(int number) {
+        if (children[number-1].activeSelf) {
+            return activeLeft == 1;
+        }
+        // number not clickable
+        return false;
+    }
     public bool IsNumberLeft() {
+        if (isClicked) return true;
         return activeLeft > 0;
     }
     
@@ -71,6 +80,12 @@ public class InnerGrid : MonoBehaviour
     }
     
     public bool isNumberClickable(int number) {
+        if (isClicked) return false;
         return children[number-1].activeSelf;
+    }
+    
+    public int choiceLeft() {
+        if (isClicked) return 0;
+        return activeLeft;
     }
 }

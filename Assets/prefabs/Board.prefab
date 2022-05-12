@@ -129,6 +129,7 @@ MonoBehaviour:
   numberLeft: 0
   solveSpeed: 0.1
   knownNumbers: 0
+  minKnownNumbers: 17
 --- !u!1 &4356602323502146775
 GameObject:
   m_ObjectHideFlags: 0
@@ -836,6 +837,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 2884970295548614009, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
+      propertyPath: m_TagString
+      value: borders
+      objectReference: {fileID: 0}
     - target: {fileID: 3299389759947653853, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
       propertyPath: m_RootOrder
       value: 1
@@ -1305,15 +1310,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: m_BrainParameters.VectorObservationSize
-      value: 974
+      value: 1056
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: m_BrainParameters.NumStackedVectorObservations
-      value: 1
+      value: 5
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763125, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: DecisionPeriod
-      value: 1
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763125, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: TakeActionsBetweenDecisions
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763127, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: m_Name
@@ -1329,7 +1338,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763130, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: isRecord
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763130, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: moveStep
@@ -1340,9 +1349,17 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763130, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: moveSpeed
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763130, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: smokeEffect
       value: 
       objectReference: {fileID: 2204763135653199755}
+    - target: {fileID: 1676312188061763130, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: minKnownNumbers
+      value: 80
+      objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763131, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: m_RootOrder
       value: 82
@@ -1425,7 +1442,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Record: 0
   NumStepsToRecord: 0
-  DemonstrationName: sudokuSolver
+  DemonstrationName: sudokuEasy
   DemonstrationDirectory: Demos
 --- !u!1001 &1343433521229258753
 PrefabInstance:
@@ -1812,6 +1829,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 2884970295548614009, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
+      propertyPath: m_TagString
+      value: borders
+      objectReference: {fileID: 0}
     - target: {fileID: 3299389759947653853, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
       propertyPath: m_RootOrder
       value: 0
@@ -2170,6 +2191,10 @@ PrefabInstance:
     - target: {fileID: 2884970295548614009, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2884970295548614009, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
+      propertyPath: m_TagString
+      value: borders
       objectReference: {fileID: 0}
     - target: {fileID: 3299389759947653853, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
       propertyPath: m_RootOrder
@@ -6545,6 +6570,10 @@ PrefabInstance:
     - target: {fileID: 2884970295548614009, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
       propertyPath: m_Layer
       value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2884970295548614009, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
+      propertyPath: m_TagString
+      value: borders
       objectReference: {fileID: 0}
     - target: {fileID: 3299389759947653853, guid: aaf56a66853835a46ae7d12bf576946e, type: 3}
       propertyPath: m_RootOrder

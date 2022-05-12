@@ -6,6 +6,52 @@ using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 using System.Linq;
 
+/// <summary>
+/// States of the agent
+///
+///      | <---------------------------- ^
+///      |                               |
+///      v                               |
+///  +---------+      +-------+      +-------+ 
+///  |make     | ---> |Move   | ---> |Moving | 
+///  |Decision |      |       |      |       |   
+///  +---------+      +-------+      +-------+ 
+///
+///    |     ^
+///    |     |
+///    v     |
+///
+///  +--------------------+
+///  |Choose a number     |
+///  |at current position |
+///  +--------------------+
+enum State
+{
+    /// <summary>
+    /// Guard value, should never happen.
+    /// </summary>
+    Invalid = -1,
+    /// <summary>
+    /// Request a move from the Agent. Try to make a decision to move or choose number
+    /// </summary>
+    MakeDecision = 0,
+
+    /// <summary>
+    /// choose to move
+    /// </summary>
+    Move = 1,
+
+    /// <summary>
+    /// Moving state, play animation and move the agent to move point
+    /// </summary>
+    Moving = 2,
+
+    /// <summary>
+    /// choose number at the current position
+    /// </summary>
+    ChooseNumber = 3,
+}
+    
 public class SudokuAgent : Agent
 {
     [SerializeField] float moveSpeed = 5f;
@@ -19,53 +65,22 @@ public class SudokuAgent : Agent
     BoardManager boardManager;
     [SerializeField] Animator animator;
     
-    // void Start() {
-    //     reset();
-    // }
     [SerializeField] bool isRecord;
     Dictionary<Vector2, int> answersCopy;
     Vector2 answerIdx;
     int answerValue;
+    public int minKnownNumbers;
     
     [SerializeField] private GameObject smokeEffect;
+    // private int m_MovesMade;
+    // public float MoveTime = 1.0f;
+    // public int MaxMoves = 5000;
+    // State m_CurrentState = State.MakeDecision;
+    // float m_TimeUntilMove;
+    
     void Update() {
         float movementAmout = moveSpeed * Time.deltaTime;
         transform.localPosition = Vector3.MoveTowards(transform.localPosition, movePoint.localPosition, movementAmout);
-
-        // var hor = Input.GetAxisRaw("Horizontal");
-        // var ver = Input.GetAxisRaw("Vertical");
-        
-        // if (Vector3.Distance(transform.position, movePoint.position) <= 0.05f) {
-        //     if (Mathf.Abs(hor) == 1f) {
-        //         Vector3 newPosition = movePoint.position + new Vector3(hor*moveStep, 0, 0);
-        //         if (!Physics2D.OverlapCircle(newPosition, stopDistance, obstacleMask)) {
-        //             movePoint.position = newPosition;
-        //             idx.y += hor;
-        //             Debug.Log($"Move to {idx.x} {idx.y}");
-        //         }
-        //     }
-        //     else if (Mathf.Abs(ver) == 1f) {
-        //         Vector3 newPosition = movePoint.position + new Vector3(0, ver*moveStep, 0);
-        //         if (!Physics2D.OverlapCircle(newPosition, stopDistance, obstacleMask)) {
-        //             movePoint.position = newPosition;
-        //             idx.x -= ver;
-        //             Debug.Log($"Move to {idx.x} {idx.y}");
-        //         }
-        //     }
-        //     animator.SetBool("isWalk", false);
-        // }
-        // else {
-        //     animator.SetBool("isWalk", true);
-        // }
-        
-        // // flip agent
-        // if (hor > 0 && !facingRight) {
-        //     flip();
-        // }
-        // else if (hor < 0 && facingRight) {
-        //     flip();
-        // }
-        
     }
 
     void flip() {
@@ -76,11 +91,14 @@ public class SudokuAgent : Agent
         animator.SetTrigger("doTouch");
     }
     
-    
+    private void Awake() {
+        boardManager = gameObject.GetComponentInParent<BoardManager>();
+    }
     // ML-agent
     public override void OnEpisodeBegin() {
+        minKnownNumbers = (int) Academy.Instance.EnvironmentParameters.GetWithDefault("min_known_numbers", minKnownNumbers);
         // reset the sudoku
-        boardManager = gameObject.GetComponentInParent<BoardManager>();
+        boardManager.minKnownNumbers = minKnownNumbers;
         boardManager.init();
         reset();
     }    
@@ -92,29 +110,43 @@ public class SudokuAgent : Agent
         answersCopy = new Dictionary<Vector2, int>(boardManager.answers);
         answerIdx = new Vector2(-1, -1);
         answerValue = -1;
+        
+        // m_MovesMade = 0;
+        // m_CurrentState = State.MakeDecision;
+        // m_TimeUntilMove = MoveTime;
     }
     
     public override void CollectObservations(VectorSensor sensor) {
         // Agent positions
         sensor.AddObservation(idx);
+        // Debug.Log($"current idx {idx.x} {idx.y}");
+        // number left
+        sensor.AddObservation(boardManager.numberLeft);
         // add current sudoku state
         foreach (var state in boardManager.GetCurrentState()) {
-            // sensor.AddObservation(state);
-            // var isClicked = state[0] == 1 ? true : false;
+            var isClicked = state[0] == 1 ? true : false;
             // var isNumberLeft = state[1] == 1 ? true : false;
-            // sensor.AddObservation(isClicked);
+            sensor.AddObservation(isClicked);
             // sensor.AddObservation(isNumberLeft);
+            // the number that is clickable in that position
             // for(int i = 2; i < 11; i++) {
-            //     sensor.AddObservation(state[i]);
+            //     // sensor.AddObservation(state[i]);
+            //     // one-hot encoding
+            //     for(int j = 0; j < 10; j++) {
+            //         sensor.AddObservation(state[i] == j ? 1 : 0);
+            //     }
             // }
+            // the clicked number in that position
             // one-hot encoding
-            // for(int i = 0; i < 10; i++) {
-            //     sensor.AddObservation(state[11] == i ? 1 : 0);
-            // }
-            
-            foreach (var obs in state) {
-                sensor.AddObservation(obs);
+            for(int i = 0; i < 10; i++) {
+                sensor.AddObservation(state[11] == i ? 1 : 0);
             }
+            sensor.AddObservation(state[12]);
+            sensor.AddObservation(state[13]);
+            
+            // foreach (var obs in state) {
+            //     sensor.AddObservation(obs);
+            // }
         }
     }
     
@@ -127,7 +159,7 @@ public class SudokuAgent : Agent
         // 4 - 12 click number 1-9 at current position
         
         var action = actionBuffers.DiscreteActions[0];
-        var stepPenalty = -1.0f / MaxStep;
+        var stepPenalty = -0.001f;
         
         // move or click number
         if (action <= 3) {
@@ -135,30 +167,18 @@ public class SudokuAgent : Agent
             var hor = 0;
             var ver = 0;
             switch(movement) {
-                case 0:
-                    // up
-                    ver = 1;
-                    break;
-                case 1:
-                    // down
-                    ver = -1;
-                    break;
-                case 2:
-                    // left
-                    hor = -1;
-                    break;
-                case 3:
-                    // right
-                    hor = 1;
-                    break;
-                default:
-                    break;
+                case 0: ver = 1;  break;
+                case 1: ver = -1; break;
+                case 2: hor = -1; break;
+                case 3: hor = 1;  break;
+                default: break;
             }
             
             if (!move(hor, ver)) {
                 // encourage the agent to not hit the boarder
-                // Debug.Log("hit the boarder");
-                AddReward(stepPenalty);
+                SetReward(-1.0f);
+                EndEpisode();
+                return;
             }
             // encourage the agent to move less
             // Debug.Log("choose to move");
@@ -170,24 +190,27 @@ public class SudokuAgent : Agent
             }
             var clickAction = action-3;
             // Debug.Log($"click number {clickAction} at idx {idx.x} {idx.y}");
-            var res = boardManager.ClickNumberAtPosition(idx, clickAction);
-            // if (res != 0) {
-            //     // check if action is in the answer
-            //     if (boardManager.answers.TryGetValue(idx, out int tmp) && tmp == clickAction) {
-            //         // same as answer!
-            //         // Debug.Log("in the answer");
-            //         AddReward(1.0f);
-            //     }
-            //     else {
-            //         // not in the answer
-            //         // Debug.Log("not in the answer");
-            //         AddReward(stepPenalty);
-            //     }
-            // }
-            animator.SetTrigger("doTouch");
+            var res = boardManager.ClickNumberAtPositionSafe(idx, clickAction);
             // 0 - no effect
             // 1 - click a number and it leads to a complete solution
             // 2 - click a number and it leads to an incomplete solution
+            
+            
+            if (res != 0) {
+                // check if action is in the answer
+                if (boardManager.answers.TryGetValue(idx, out int tmp) && tmp == clickAction) {
+                    // same as answer!
+                    // Debug.Log("in the answer");
+                    AddReward(1.0f);
+                }
+                else {
+                    // not in the answer
+                    // Debug.Log("not in the answer");
+                    AddReward(stepPenalty);
+                }
+            }
+            
+            animator.SetTrigger("doTouch");
             if (res == 0) {
                 // encourage the agent to do action that has any effect
                 // Debug.Log("action has no effect");
@@ -197,13 +220,17 @@ public class SudokuAgent : Agent
                 // encourage the agent to find a complete solution
                 // Debug.Log($"lead to a complete solution");
                 
-                // Get 1.0f reward after finish the puzzle
-                AddReward(1/(9*9 - boardManager.knownNumbers));
+                // Get 2.0f reward after finish the puzzle
+                // AddReward(2/(9*9 - boardManager.knownNumbers));
+                AddReward(0.1f);
             }
             else if (res == 2) {
                 // encourage the agent to find a complete solution
                 // Debug.Log($"Find an incomplete solution");
-                AddReward(-1f);
+                // AddReward(2*stepPenalty);
+                
+                // we can perform a safe action to avoid early episode end
+                SetReward(-1.0f);
                 EndEpisode();
                 return;
             }
@@ -212,19 +239,10 @@ public class SudokuAgent : Agent
         // Puzzle Completed
         if (boardManager.isPuzzleComplete()) {
             // AddReward(9*9-boardManager.knownNumbers);
-            AddReward(3.0f);
+            SetReward(1.0f);
             Debug.Log($"Find a solution for knownNumbers={boardManager.knownNumbers}");
             EndEpisode();
-            return;
         }
-        // if (StepCount > 5000) {
-        //     // number of click
-        //     // var click = 9*9-boardManager.numberLeft-boardManager.knownNumbers;
-        //     // AddReward(click*0.1f);
-        //     SetReward(-1.0f);
-        //     Debug.Log($"StepCount reach {StepCount}, give reward {-5f}"); 
-        //     EndEpisode();
-        // }
     }
     
     // move the agent, and check if the move hit the border
@@ -241,7 +259,7 @@ public class SudokuAgent : Agent
                 else {
                     // try to go over border
                     res = false;
-                    Debug.Log($"try to go over border");
+                    // Debug.Log($"try to go over border");
                     if (!smokeEffect.activeSelf) {
                         smokeEffect.SetActive(true);
                     }
@@ -257,7 +275,7 @@ public class SudokuAgent : Agent
                 else {
                     // try to go over border
                     res = false;
-                    Debug.Log($"try to go over border");
+                    // Debug.Log($"try to go over border");
                     if (!smokeEffect.activeSelf) {
                         smokeEffect.SetActive(true);
                     }
@@ -295,11 +313,36 @@ public class SudokuAgent : Agent
         // move to the answer position and click it
         if (isRecord) {
             if (answerIdx.x == -1) {
-                // TODO: maybe pick a position with least choice?
                 // pick a answer randomly
-                var ans = answersCopy.ElementAt(Random.Range(0, answersCopy.Count));
-                answerIdx = ans.Key;
-                answerValue = ans.Value;
+                var tmp = answersCopy.ElementAt(Random.Range(0, answersCopy.Count));
+                answerIdx = tmp.Key;
+                answerValue = tmp.Value;
+                // pick a position with least choice and closest
+                var leastChoice = 9;
+                var choices = new List<(Vector2, int)>();
+                foreach (var ans in answersCopy) {
+                    var choice = boardManager.choiceLeft(ans.Key);
+                    if (choice > 0 && choice <= leastChoice) {
+                        if (choice != leastChoice) {
+                            choices.Clear();
+                        }
+                        choices.Add((ans.Key, ans.Value));
+                        // answerIdx = ans.Key;
+                        // answerValue = ans.Value;
+                        leastChoice = choice;
+                    }
+                }
+                var closestDistance = 1000.0f;
+                // pick the closest
+                foreach(var ans in choices) {
+                    var distance = Vector2.Distance(ans.Item1, idx);
+                    if (distance < closestDistance) {
+                        answerIdx = ans.Item1;
+                        answerValue = ans.Item2;
+                        closestDistance = distance;
+                    }
+                }
+                
                 // Debug.Log($"Try to move to {answerIdx.x} {answerIdx.y} and click number {answerValue}");
             } 
             if (idx != answerIdx) {
@@ -336,4 +379,45 @@ public class SudokuAgent : Agent
         }
     }
     
+    
+    // private void FixedUpdate() {
+    //     AnimatedUpdate();
+    //     // We can't use the normal MaxSteps system to decide when to end an episode,
+    //     // since different agents will make moves at different frequencies (depending on the number of
+    //     // chained moves). So track a number of moves per Agent and manually interrupt the episode.
+    //     if (m_MovesMade >= MaxMoves) {
+    //         EpisodeInterrupted();
+    //     }
+    // }
+        
+    // void AnimatedUpdate() {
+    //     m_TimeUntilMove -= Time.deltaTime;
+    //     if (m_TimeUntilMove > 0.0f) {
+    //         return;
+    //     }
+
+    //     m_TimeUntilMove = MoveTime;
+
+    //     State nextState = State.Invalid;
+    //     switch(m_CurrentState) {
+    //         case State.MakeDecision:
+                
+                
+                
+    //             break;
+    //         case State.Move:
+    //             nextState = State.Moving;
+    //             break;
+    //         case State.Moving:
+    //             nextState = State.MakeDecision;
+    //             break;
+    //         case State.ChooseNumber:
+    //             nextState = State.MakeDecision;
+    //             break;
+    //         default:
+    //             break;
+        
+    //     }
+    //     m_CurrentState = nextState;
+    // }
 }
