@@ -6,51 +6,6 @@ using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 using System.Linq;
 
-/// <summary>
-/// States of the agent
-///
-///      | <---------------------------- ^
-///      |                               |
-///      v                               |
-///  +---------+      +-------+      +-------+ 
-///  |make     | ---> |Move   | ---> |Moving | 
-///  |Decision |      |       |      |       |   
-///  +---------+      +-------+      +-------+ 
-///
-///    |     ^
-///    |     |
-///    v     |
-///
-///  +--------------------+
-///  |Choose a number     |
-///  |at current position |
-///  +--------------------+
-enum State
-{
-    /// <summary>
-    /// Guard value, should never happen.
-    /// </summary>
-    Invalid = -1,
-    /// <summary>
-    /// Request a move from the Agent. Try to make a decision to move or choose number
-    /// </summary>
-    MakeDecision = 0,
-
-    /// <summary>
-    /// choose to move
-    /// </summary>
-    Move = 1,
-
-    /// <summary>
-    /// Moving state, play animation and move the agent to move point
-    /// </summary>
-    Moving = 2,
-
-    /// <summary>
-    /// choose number at the current position
-    /// </summary>
-    ChooseNumber = 3,
-}
     
 public class SudokuAgent : Agent
 {
@@ -72,15 +27,73 @@ public class SudokuAgent : Agent
     public int minKnownNumbers;
     
     [SerializeField] private GameObject smokeEffect;
-    // private int m_MovesMade;
-    // public float MoveTime = 1.0f;
-    // public int MaxMoves = 5000;
-    // State m_CurrentState = State.MakeDecision;
-    // float m_TimeUntilMove;
-    
+    private Queue<Vector3> actionBuffer;
+    int numberToClick;
     void Update() {
         float movementAmout = moveSpeed * Time.deltaTime;
         transform.localPosition = Vector3.MoveTowards(transform.localPosition, movePoint.localPosition, movementAmout);
+        if (actionBuffer.Count == 0) return;
+        var top = actionBuffer.Peek();
+        // Debug.Log($"Move to {top.y} {top.z} and click number {top.x}");
+        var actionIdx = new Vector2(top.y, top.z);
+        
+        if (idx != actionIdx) {
+            var hor = 0.0f;
+            var ver = 0.0f;
+            // moves to that idx
+            if (idx.x != actionIdx.x) {
+                // move vertical
+                ver = idx.x < actionIdx.x ? -1.0f : 1.0f;
+            }
+            else if (idx.y != actionIdx.y) {
+                // move horizontal
+                hor = idx.y < actionIdx.y ? 1.0f : -1.0f;
+            }
+            // just move it to that idx
+            move(hor, ver);
+        }
+        // after the move
+        if (idx == actionIdx) {
+            actionBuffer.Dequeue();
+            animator.SetTrigger("doTouch");
+            // already at that location
+            var res = boardManager.ClickNumberAtPositionSafe(idx, (int)top.x);
+            var stepPenalty = -0.001f;
+            
+            // reward
+            if (res == 0) {
+                // encourage the agent to do action that has any effect
+                // Debug.Log("action has no effect");
+                AddReward(stepPenalty);
+            }
+            else if (res == 1) {
+                // encourage the agent to find a complete solution
+                // Debug.Log($"lead to a complete solution");
+                
+                // Get 1.0f reward after finish the puzzle
+                // AddReward(1/(9*9 - boardManager.knownNumbers));
+                AddReward(1/numberToClick);
+            }
+            else if (res == 2) {
+                // encourage the agent to find a complete solution
+                // Debug.Log($"Find an incomplete solution");
+                AddReward(2*stepPenalty);
+                
+                // we can perform a safe action to avoid early episode end
+                // SetReward(-1.0f);
+                // EndEpisode();
+                // return;
+            }
+            // Puzzle Completed
+            if (boardManager.isPuzzleComplete()) {
+                // AddReward(9*9-boardManager.knownNumbers);
+                SetReward(1.0f);
+                Debug.Log($"Find a solution for knownNumbers={boardManager.knownNumbers}");
+                EndEpisode();
+                return;
+            }
+        }
+        
     }
 
     void flip() {
@@ -110,15 +123,13 @@ public class SudokuAgent : Agent
         answersCopy = new Dictionary<Vector2, int>(boardManager.answers);
         answerIdx = new Vector2(-1, -1);
         answerValue = -1;
-        
-        // m_MovesMade = 0;
-        // m_CurrentState = State.MakeDecision;
-        // m_TimeUntilMove = MoveTime;
+        actionBuffer = new Queue<Vector3>();
+        numberToClick = (9*9 - boardManager.knownNumbers);
     }
     
     public override void CollectObservations(VectorSensor sensor) {
         // Agent positions
-        sensor.AddObservation(idx);
+        // sensor.AddObservation(idx);
         // Debug.Log($"current idx {idx.x} {idx.y}");
         // number left
         sensor.AddObservation(boardManager.numberLeft);
@@ -129,20 +140,20 @@ public class SudokuAgent : Agent
             sensor.AddObservation(isClicked);
             // sensor.AddObservation(isNumberLeft);
             // the number that is clickable in that position
-            // for(int i = 2; i < 11; i++) {
-            //     // sensor.AddObservation(state[i]);
-            //     // one-hot encoding
-            //     for(int j = 0; j < 10; j++) {
-            //         sensor.AddObservation(state[i] == j ? 1 : 0);
-            //     }
-            // }
+            for(int i = 2; i < 11; i++) {
+                sensor.AddObservation(state[i]);
+                // one-hot encoding
+                // for(int j = 0; j < 10; j++) {
+                //     sensor.AddObservation(state[i] == j ? 1 : 0);
+                // }
+            }
             // the clicked number in that position
             // one-hot encoding
             for(int i = 0; i < 10; i++) {
                 sensor.AddObservation(state[11] == i ? 1 : 0);
             }
-            sensor.AddObservation(state[12]);
-            sensor.AddObservation(state[13]);
+            // sensor.AddObservation(state[12]);
+            // sensor.AddObservation(state[13]);
             
             // foreach (var obs in state) {
             //     sensor.AddObservation(obs);
@@ -151,98 +162,108 @@ public class SudokuAgent : Agent
     }
     
     public override void OnActionReceived(ActionBuffers actionBuffers) {
-        // action
-        // 0 - move up
-        // 1 - move down
-        // 2 - move left
-        // 3 - move right
-        // 4 - 12 click number 1-9 at current position
+        // action[0]
+        // 0 - 8 click number 1-9
+        // action[1]
+        // idx i
+        // action[2]
+        // idx j
         
-        var action = actionBuffers.DiscreteActions[0];
-        var stepPenalty = -0.001f;
+        var number = actionBuffers.DiscreteActions[0] + 1;
+        var idx_i = actionBuffers.DiscreteActions[1];
+        var idx_j = actionBuffers.DiscreteActions[2];
         
-        // move or click number
-        if (action <= 3) {
-            var movement = action;
-            var hor = 0;
-            var ver = 0;
-            switch(movement) {
-                case 0: ver = 1;  break;
-                case 1: ver = -1; break;
-                case 2: hor = -1; break;
-                case 3: hor = 1;  break;
-                default: break;
-            }
+        // not moved to last action yet
+        if (actionBuffer.Count > 0 && actionBuffer.Last() == new Vector3(number, idx_i, idx_j)) return;
+        actionBuffer.Enqueue(new Vector3(number, idx_i, idx_j));
+        
+        // return;
+        
+        // var action = actionBuffers.DiscreteActions[0];
+        // var stepPenalty = -0.001f;
+        
+        // // move or click number
+        // if (action <= 3) {
+        //     var movement = action;
+        //     var hor = 0;
+        //     var ver = 0;
+        //     switch(movement) {
+        //         case 0: ver = 1;  break;
+        //         case 1: ver = -1; break;
+        //         case 2: hor = -1; break;
+        //         case 3: hor = 1;  break;
+        //         default: break;
+        //     }
             
-            if (!move(hor, ver)) {
-                // encourage the agent to not hit the boarder
-                SetReward(-1.0f);
-                EndEpisode();
-                return;
-            }
-            // encourage the agent to move less
-            // Debug.Log("choose to move");
-            AddReward(stepPenalty);
-        }
-        else {
-            if (smokeEffect.activeSelf) {
-                smokeEffect.SetActive(false);
-            }
-            var clickAction = action-3;
-            // Debug.Log($"click number {clickAction} at idx {idx.x} {idx.y}");
-            var res = boardManager.ClickNumberAtPositionSafe(idx, clickAction);
-            // 0 - no effect
-            // 1 - click a number and it leads to a complete solution
-            // 2 - click a number and it leads to an incomplete solution
+        //     if (!move(hor, ver)) {
+        //         // encourage the agent to not hit the boarder
+        //         SetReward(-1.0f);
+        //         EndEpisode();
+        //         return;
+        //     }
+        //     // encourage the agent to move less
+        //     // Debug.Log("choose to move");
+        //     AddReward(stepPenalty);
+        // }
+        // else {
+        //     if (smokeEffect.activeSelf) {
+        //         smokeEffect.SetActive(false);
+        //     }
+        //     var clickAction = action-3;
+        //     // Debug.Log($"click number {clickAction} at idx {idx.x} {idx.y}");
+        //     var res = boardManager.ClickNumberAtPositionSafe(idx, clickAction);
+        //     // 0 - no effect
+        //     // 1 - click a number and it leads to a complete solution
+        //     // 2 - click a number and it leads to an incomplete solution
             
             
-            if (res != 0) {
-                // check if action is in the answer
-                if (boardManager.answers.TryGetValue(idx, out int tmp) && tmp == clickAction) {
-                    // same as answer!
-                    // Debug.Log("in the answer");
-                    AddReward(1.0f);
-                }
-                else {
-                    // not in the answer
-                    // Debug.Log("not in the answer");
-                    AddReward(stepPenalty);
-                }
-            }
+        //     if (res != 0) {
+        //         // check if action is in the answer
+        //         if (boardManager.answers.TryGetValue(idx, out int tmp) && tmp == clickAction) {
+        //             // same as answer!
+        //             // Debug.Log("in the answer");
+        //             AddReward(1.0f);
+        //         }
+        //         else {
+        //             // not in the answer
+        //             // Debug.Log("not in the answer");
+        //             AddReward(stepPenalty);
+        //         }
+        //     }
             
-            animator.SetTrigger("doTouch");
-            if (res == 0) {
-                // encourage the agent to do action that has any effect
-                // Debug.Log("action has no effect");
-                AddReward(stepPenalty);
-            }
-            else if (res == 1) {
-                // encourage the agent to find a complete solution
-                // Debug.Log($"lead to a complete solution");
+        //     animator.SetTrigger("doTouch");
+        //     if (res == 0) {
+        //         // encourage the agent to do action that has any effect
+        //         // Debug.Log("action has no effect");
+        //         AddReward(stepPenalty);
+        //     }
+        //     else if (res == 1) {
+        //         // encourage the agent to find a complete solution
+        //         // Debug.Log($"lead to a complete solution");
                 
-                // Get 2.0f reward after finish the puzzle
-                // AddReward(2/(9*9 - boardManager.knownNumbers));
-                AddReward(0.1f);
-            }
-            else if (res == 2) {
-                // encourage the agent to find a complete solution
-                // Debug.Log($"Find an incomplete solution");
-                // AddReward(2*stepPenalty);
+        //         // Get 2.0f reward after finish the puzzle
+        //         // AddReward(2/(9*9 - boardManager.knownNumbers));
+        //         AddReward(0.1f);
+        //     }
+        //     else if (res == 2) {
+        //         // encourage the agent to find a complete solution
+        //         // Debug.Log($"Find an incomplete solution");
+        //         // AddReward(2*stepPenalty);
                 
-                // we can perform a safe action to avoid early episode end
-                SetReward(-1.0f);
-                EndEpisode();
-                return;
-            }
-        }
+        //         // we can perform a safe action to avoid early episode end
+        //         SetReward(-1.0f);
+        //         EndEpisode();
+        //         return;
+        //     }
+        // }
         
-        // Puzzle Completed
-        if (boardManager.isPuzzleComplete()) {
-            // AddReward(9*9-boardManager.knownNumbers);
-            SetReward(1.0f);
-            Debug.Log($"Find a solution for knownNumbers={boardManager.knownNumbers}");
-            EndEpisode();
-        }
+        // // Puzzle Completed
+        // if (boardManager.isPuzzleComplete()) {
+        //     // AddReward(9*9-boardManager.knownNumbers);
+        //     SetReward(1.0f);
+        //     Debug.Log($"Find a solution for knownNumbers={boardManager.knownNumbers}");
+        //     EndEpisode();
+        // }
     }
     
     // move the agent, and check if the move hit the border
@@ -302,16 +323,17 @@ public class SudokuAgent : Agent
     }
     
     
-    // action
-    // 0 - move up
-    // 1 - move down
-    // 2 - move left
-    // 3 - move right
-    // 4 - 12 click number 1-9 at current position
+    // action[0]
+    // 0 - 8 click number 1-9
+    // action[1]
+    // idx i
+    // action[2]
+    // idx j
+    
     public override void Heuristic(in ActionBuffers actionsOut) {
         var DiscreteActionsOut = actionsOut.DiscreteActions;
         // move to the answer position and click it
-        if (isRecord) {
+        if (isRecord && answersCopy.Count > 0) {
             if (answerIdx.x == -1) {
                 // pick a answer randomly
                 var tmp = answersCopy.ElementAt(Random.Range(0, answersCopy.Count));
@@ -345,79 +367,29 @@ public class SudokuAgent : Agent
                 
                 // Debug.Log($"Try to move to {answerIdx.x} {answerIdx.y} and click number {answerValue}");
             } 
-            if (idx != answerIdx) {
-                // moves to that idx
-                if (idx.x != answerIdx.x) {
-                    // move vertical
-                    DiscreteActionsOut[0] = idx.x < answerIdx.x ? 1 : 0;
-                }
-                else if (idx.y != answerIdx.y) {
-                    // move horizontal
-                    DiscreteActionsOut[0] = idx.y < answerIdx.y ? 3 : 2;
-                }
-            }
-            else {
-                // already at that position (action idx == number to click + 3)
-                DiscreteActionsOut[0] = answerValue+3;
-                // remove it from the answer
-                answersCopy.Remove(answerIdx);
-                answerIdx = new Vector2(-1, -1);
-                answerValue = -1;
-            }
+            DiscreteActionsOut[0] = answerValue-1;
+            DiscreteActionsOut[1] = (int)answerIdx.x;
+            DiscreteActionsOut[2] = (int)answerIdx.y;
+
+            // remove it from the answer
+            // if (actionBuffer.Count > 0 && actionBuffer.Peek() == new Vector3(answerValue-1, answerIdx.x, answerIdx.y)) {
+            answersCopy.Remove(answerIdx);
+            answerIdx = new Vector2(-1, -1);
+            answerValue = -1;
+            // }
             return;
         }
     
         
-        if (Mathf.Abs(Input.GetAxis("Horizontal")) == 1f) {
-            DiscreteActionsOut[0] = Input.GetAxis("Horizontal") > 0 ? 3 : 2;
-        }
-        else if (Mathf.Abs(Input.GetAxis("Vertical")) == 1f) {
-            DiscreteActionsOut[0] = Input.GetAxis("Vertical") > 0 ? 0 : 1;
-        }
-        else {
-            DiscreteActionsOut[0] = Random.Range(4, 13);
-        }
+        // if (Mathf.Abs(Input.GetAxis("Horizontal")) == 1f) {
+        //     DiscreteActionsOut[0] = Input.GetAxis("Horizontal") > 0 ? 3 : 2;
+        // }
+        // else if (Mathf.Abs(Input.GetAxis("Vertical")) == 1f) {
+        //     DiscreteActionsOut[0] = Input.GetAxis("Vertical") > 0 ? 0 : 1;
+        // }
+        // else {
+        //     DiscreteActionsOut[0] = Random.Range(4, 13);
+        // }
     }
     
-    
-    // private void FixedUpdate() {
-    //     AnimatedUpdate();
-    //     // We can't use the normal MaxSteps system to decide when to end an episode,
-    //     // since different agents will make moves at different frequencies (depending on the number of
-    //     // chained moves). So track a number of moves per Agent and manually interrupt the episode.
-    //     if (m_MovesMade >= MaxMoves) {
-    //         EpisodeInterrupted();
-    //     }
-    // }
-        
-    // void AnimatedUpdate() {
-    //     m_TimeUntilMove -= Time.deltaTime;
-    //     if (m_TimeUntilMove > 0.0f) {
-    //         return;
-    //     }
-
-    //     m_TimeUntilMove = MoveTime;
-
-    //     State nextState = State.Invalid;
-    //     switch(m_CurrentState) {
-    //         case State.MakeDecision:
-                
-                
-                
-    //             break;
-    //         case State.Move:
-    //             nextState = State.Moving;
-    //             break;
-    //         case State.Moving:
-    //             nextState = State.MakeDecision;
-    //             break;
-    //         case State.ChooseNumber:
-    //             nextState = State.MakeDecision;
-    //             break;
-    //         default:
-    //             break;
-        
-    //     }
-    //     m_CurrentState = nextState;
-    // }
 }

@@ -1310,11 +1310,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: m_BrainParameters.VectorObservationSize
-      value: 1056
+      value: 1621
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.VectorActionSize.Array.size
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: m_BrainParameters.NumStackedVectorObservations
-      value: 5
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.VectorActionSize.Array.data[0]
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.VectorActionSize.Array.data[1]
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.VectorActionSize.Array.data[2]
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.m_ActionSpec.BranchSizes.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.m_ActionSpec.BranchSizes.Array.data[0]
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.m_ActionSpec.BranchSizes.Array.data[1]
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 1676312188061763124, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
+      propertyPath: m_BrainParameters.m_ActionSpec.BranchSizes.Array.data[2]
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 1676312188061763125, guid: 6b33783a72421144e83ec012a08c6813, type: 3}
       propertyPath: DecisionPeriod
