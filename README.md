@@ -1,6 +1,8 @@
 # sudokuSolver
 Use reinforcement learning to solve sudoku puzzle in unity 3D
 
+https://play.unity.com/mg/other/webgl-builds-194165
+
 # Actions
 there are 13 discrete actions
 
@@ -16,10 +18,10 @@ there are 13 discrete actions
 
 # Rewards
 - add -0.001 for every step.
-- set -1.0 if the agent moves across the borders (or not have it to lower the difficulty) and end Episode
+- set -1.0 if the agent moves across the borders and end Episode (or give -0.01f and not end episode to lower difficulty)
 - add -0.001 if the agent tried to choose a number at the current position that is not available
 - add -0.001 if the agent tried to choose a number at the current position, but there is already a number 
-- set to -1.0 if the agent tried to choose a number at the current position, and it leads to an incomplete solution for the puzzle (during wave function collapse, some other grids have no available numbers left)  and end Episode
+- set to -1.0 if the agent tried to choose a number at the current position, and it leads to an incomplete solution for the puzzle (during wave function collapse, some other grids have no available numbers left)  and end Episode (or give -0.01f and not end episode to lower difficulty)
 - add 1/(9*9-known_number) if the agent picks a number at the current position and the action does not have any bad effect like above
 - set +1.0 if the agent solves the puzzle and end Episode
 
@@ -34,6 +36,7 @@ for all 9*9 grids of the puzzle:
 
 stack of 2 observations for some short term memory
 
+Total of 1623 * 2 observations
 
 # Rant
 After a few days of hyperparameter tuning, adjusting rewards, and observations, I have concluded that reinforcement learning in its simplest form is not able to learn to solve sudoku.
