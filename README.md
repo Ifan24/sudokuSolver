@@ -1,5 +1,5 @@
 # sudokuSolver
-Use reinforcement learning to solve sudoku puzzle in unity 3D
+Use reinforcement learning to solve sudoku puzzle in Unity
 
 https://play.unity.com/mg/other/webgl-builds-194165
 
