@@ -16,7 +16,8 @@ public class BoardManager : MonoBehaviour
     public int minKnownNumbers = 17;
     public void init() {
         gameManager = GameManager.Instance;
-        knownNumbers = Random.Range(minKnownNumbers, 81);
+        // knownNumbers = Random.Range(minKnownNumbers, 81);
+        knownNumbers = gameManager.knownNumbers;
         numberLeft = 9*9;
         updateNumberLeft();
         

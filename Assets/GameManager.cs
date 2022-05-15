@@ -22,13 +22,16 @@ public class GameManager : MonoBehaviour
     [Range(17, 81)]
     public int knownNumbers;
     public Text numberLeftText;
+    [SerializeField] private GameObject agent;
     
     public void resetPuzzle() {
-        currBoard.init();
+        // currBoard.init();
+        agent.GetComponent<SudokuAgent>().OnEpisodeBegin();
     }
     
     public void solvePuzzle() {
-        currBoard.SolvePuzzle();
+        // currBoard.SolvePuzzle();
+        // agent.GetComponent<SudokuAgent>().EndEpisode();
     }
     public void changeKnownNumbers(int number) {
         knownNumbers = number;

@@ -6,52 +6,6 @@ using Unity.MLAgents.Sensors;
 using Unity.MLAgents.Actuators;
 using System.Linq;
 
-/// <summary>
-/// States of the agent
-///
-///      | <---------------------------- ^
-///      |                               |
-///      v                               |
-///  +---------+      +-------+      +-------+ 
-///  |make     | ---> |Move   | ---> |Moving | 
-///  |Decision |      |       |      |       |   
-///  +---------+      +-------+      +-------+ 
-///
-///    |     ^
-///    |     |
-///    v     |
-///
-///  +--------------------+
-///  |Choose a number     |
-///  |at current position |
-///  +--------------------+
-enum State
-{
-    /// <summary>
-    /// Guard value, should never happen.
-    /// </summary>
-    Invalid = -1,
-    /// <summary>
-    /// Request a move from the Agent. Try to make a decision to move or choose number
-    /// </summary>
-    MakeDecision = 0,
-
-    /// <summary>
-    /// choose to move
-    /// </summary>
-    Move = 1,
-
-    /// <summary>
-    /// Moving state, play animation and move the agent to move point
-    /// </summary>
-    Moving = 2,
-
-    /// <summary>
-    /// choose number at the current position
-    /// </summary>
-    ChooseNumber = 3,
-}
-    
 public class SudokuAgent : Agent
 {
     [SerializeField] float moveSpeed = 5f;
@@ -72,11 +26,6 @@ public class SudokuAgent : Agent
     public int minKnownNumbers;
     
     [SerializeField] private GameObject smokeEffect;
-    // private int m_MovesMade;
-    // public float MoveTime = 1.0f;
-    // public int MaxMoves = 5000;
-    // State m_CurrentState = State.MakeDecision;
-    // float m_TimeUntilMove;
     
     void Update() {
         float movementAmout = moveSpeed * Time.deltaTime;
@@ -111,9 +60,6 @@ public class SudokuAgent : Agent
         answerIdx = new Vector2(-1, -1);
         answerValue = -1;
         
-        // m_MovesMade = 0;
-        // m_CurrentState = State.MakeDecision;
-        // m_TimeUntilMove = MoveTime;
     }
     
     public override void CollectObservations(VectorSensor sensor) {
@@ -129,20 +75,16 @@ public class SudokuAgent : Agent
             sensor.AddObservation(isClicked);
             // sensor.AddObservation(isNumberLeft);
             // the number that is clickable in that position
-            // for(int i = 2; i < 11; i++) {
-            //     // sensor.AddObservation(state[i]);
-            //     // one-hot encoding
-            //     for(int j = 0; j < 10; j++) {
-            //         sensor.AddObservation(state[i] == j ? 1 : 0);
-            //     }
-            // }
+            for(int i = 2; i < 11; i++) {
+                sensor.AddObservation(state[i]);
+            }
             // the clicked number in that position
             // one-hot encoding
             for(int i = 0; i < 10; i++) {
                 sensor.AddObservation(state[11] == i ? 1 : 0);
             }
-            sensor.AddObservation(state[12]);
-            sensor.AddObservation(state[13]);
+            // sensor.AddObservation(state[12]);
+            // sensor.AddObservation(state[13]);
             
             // foreach (var obs in state) {
             //     sensor.AddObservation(obs);
@@ -176,9 +118,10 @@ public class SudokuAgent : Agent
             
             if (!move(hor, ver)) {
                 // encourage the agent to not hit the boarder
-                SetReward(-1.0f);
-                EndEpisode();
-                return;
+                SetReward(-0.01f);
+                // SetReward(-1.0f);
+                // EndEpisode();
+                // return;
             }
             // encourage the agent to move less
             // Debug.Log("choose to move");
@@ -190,7 +133,9 @@ public class SudokuAgent : Agent
             }
             var clickAction = action-3;
             // Debug.Log($"click number {clickAction} at idx {idx.x} {idx.y}");
-            var res = boardManager.ClickNumberAtPositionSafe(idx, clickAction);
+            // var res = boardManager.ClickNumberAtPositionSafe(idx, clickAction);
+            var res = boardManager.ClickNumberAtPosition(idx, clickAction);
+            
             // 0 - no effect
             // 1 - click a number and it leads to a complete solution
             // 2 - click a number and it leads to an incomplete solution
@@ -220,19 +165,19 @@ public class SudokuAgent : Agent
                 // encourage the agent to find a complete solution
                 // Debug.Log($"lead to a complete solution");
                 
-                // Get 2.0f reward after finish the puzzle
-                // AddReward(2/(9*9 - boardManager.knownNumbers));
-                AddReward(0.1f);
+                // Get 1.0f reward after finish the puzzle
+                AddReward(1/(9*9 - boardManager.knownNumbers));
+                // AddReward(0.1f);
             }
             else if (res == 2) {
                 // encourage the agent to find a complete solution
                 // Debug.Log($"Find an incomplete solution");
-                // AddReward(2*stepPenalty);
+                AddReward(-0.01f);
                 
                 // we can perform a safe action to avoid early episode end
-                SetReward(-1.0f);
-                EndEpisode();
-                return;
+                // SetReward(-1.0f);
+                // EndEpisode();
+                // return;
             }
         }
         
@@ -312,7 +257,7 @@ public class SudokuAgent : Agent
         var DiscreteActionsOut = actionsOut.DiscreteActions;
         // move to the answer position and click it
         if (isRecord) {
-            if (answerIdx.x == -1) {
+            if (answersCopy.Count > 0 && answerIdx.x == -1) {
                 // pick a answer randomly
                 var tmp = answersCopy.ElementAt(Random.Range(0, answersCopy.Count));
                 answerIdx = tmp.Key;
@@ -379,45 +324,4 @@ public class SudokuAgent : Agent
         }
     }
     
-    
-    // private void FixedUpdate() {
-    //     AnimatedUpdate();
-    //     // We can't use the normal MaxSteps system to decide when to end an episode,
-    //     // since different agents will make moves at different frequencies (depending on the number of
-    //     // chained moves). So track a number of moves per Agent and manually interrupt the episode.
-    //     if (m_MovesMade >= MaxMoves) {
-    //         EpisodeInterrupted();
-    //     }
-    // }
-        
-    // void AnimatedUpdate() {
-    //     m_TimeUntilMove -= Time.deltaTime;
-    //     if (m_TimeUntilMove > 0.0f) {
-    //         return;
-    //     }
-
-    //     m_TimeUntilMove = MoveTime;
-
-    //     State nextState = State.Invalid;
-    //     switch(m_CurrentState) {
-    //         case State.MakeDecision:
-                
-                
-                
-    //             break;
-    //         case State.Move:
-    //             nextState = State.Moving;
-    //             break;
-    //         case State.Moving:
-    //             nextState = State.MakeDecision;
-    //             break;
-    //         case State.ChooseNumber:
-    //             nextState = State.MakeDecision;
-    //             break;
-    //         default:
-    //             break;
-        
-    //     }
-    //     m_CurrentState = nextState;
-    // }
 }
